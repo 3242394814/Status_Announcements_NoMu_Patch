@@ -12,7 +12,7 @@ description = [[
 
 优化季节宣告相关功能
 ]]
-version = "1.0"
+version = "1.0.1"
 dst_compatible = true
 dont_starve_compatible = false
 client_only_mod = true
