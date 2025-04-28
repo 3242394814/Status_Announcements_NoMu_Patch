@@ -49,14 +49,25 @@ end
 if not rawget(_G, "NOMU_QA") then return end
 
 ----- 快捷宣告(NoMu)模组，更新宣告内容预设 -----
-GLOBAL.NOMU_QA.DATA.SCHEMES[1].data.SEASON.FORMATS.DEFAULT = string.gsub(GLOBAL.NOMU_QA.DATA.SCHEMES[1].data.SEASON.FORMATS.DEFAULT, "{SEASON}天", "{SEASON}")
-GLOBAL.NOMU_QA.DATA.SCHEMES[1].data.WORLD_TEMPERATURE_AND_RAIN.FORMATS.NO_RAIN = string.gsub(GLOBAL.NOMU_QA.DATA.SCHEMES[1].data.WORLD_TEMPERATURE_AND_RAIN.FORMATS.NO_RAIN, "{SEASON}天", "{SEASON}")
-GLOBAL.NOMU_QA.SCHEME.SEASON.FORMATS.DEFAULT = string.gsub(GLOBAL.NOMU_QA.SCHEME.SEASON.FORMATS.DEFAULT, "{SEASON}天", "{SEASON}")
-GLOBAL.NOMU_QA.SCHEME.WORLD_TEMPERATURE_AND_RAIN.FORMATS.NO_RAIN = string.gsub(GLOBAL.NOMU_QA.SCHEME.WORLD_TEMPERATURE_AND_RAIN.FORMATS.NO_RAIN, "{SEASON}天", "{SEASON}")
+AddSimPostInit(function()
+    TheGlobalInstance:DoTaskInTime(0.1,function()
+        GLOBAL.NOMU_QA.DATA.SCHEMES[1].data.SEASON.FORMATS.DEFAULT = string.gsub(GLOBAL.NOMU_QA.DATA.SCHEMES[1].data.SEASON.FORMATS.DEFAULT, "{SEASON}天", "{SEASON}")
+        GLOBAL.NOMU_QA.SCHEME.SEASON.FORMATS.DEFAULT = string.gsub(GLOBAL.NOMU_QA.SCHEME.SEASON.FORMATS.DEFAULT, "{SEASON}天", "{SEASON}")
 
--- 延迟覆盖确保生效
-AddPrefabPostInit("world",function(inst)
-    inst:DoTaskInTime(0,function()
+        GLOBAL.NOMU_QA.DATA.SCHEMES[1].data.WORLD_TEMPERATURE_AND_RAIN.FORMATS.NO_RAIN = "{WORLD}气温：{TEMPERATURE}°，{WEATHER}尚未接近。"
+        GLOBAL.NOMU_QA.DATA.SCHEMES[1].data.WORLD_TEMPERATURE_AND_RAIN.MAPPINGS.DEFAULT.WORLD.SHIPWRECKED = "海难"
+        GLOBAL.NOMU_QA.DATA.SCHEMES[1].data.WORLD_TEMPERATURE_AND_RAIN.MAPPINGS.DEFAULT.WORLD.VOLCANO = "火山"
+        GLOBAL.NOMU_QA.DATA.SCHEMES[1].data.WORLD_TEMPERATURE_AND_RAIN.MAPPINGS.DEFAULT.WORLD.PORKLAND = "猪镇"
+        GLOBAL.NOMU_QA.DATA.SCHEMES[1].data.WORLD_TEMPERATURE_AND_RAIN.MAPPINGS.DEFAULT.WEATHER.TEMPERATE = "降雨" -- 平和季
+        GLOBAL.NOMU_QA.DATA.SCHEMES[1].data.WORLD_TEMPERATURE_AND_RAIN.MAPPINGS.DEFAULT.WEATHER.HUMID = "降雨" -- 潮湿季
+        GLOBAL.NOMU_QA.DATA.SCHEMES[1].data.WORLD_TEMPERATURE_AND_RAIN.MAPPINGS.DEFAULT.WEATHER.LUSH = "降雨" -- 繁茂季
+        GLOBAL.NOMU_QA.DATA.SCHEMES[1].data.WORLD_TEMPERATURE_AND_RAIN.MAPPINGS.DEFAULT.WEATHER.APORKALYPSE = "降雨" -- 大灾变
+        GLOBAL.NOMU_QA.DATA.SCHEMES[1].data.WORLD_TEMPERATURE_AND_RAIN.MAPPINGS.DEFAULT.WEATHER.GREEN = "降雨" -- 雨季
+        GLOBAL.NOMU_QA.DATA.SCHEMES[1].data.WORLD_TEMPERATURE_AND_RAIN.MAPPINGS.DEFAULT.WEATHER.DRY = "降雨" -- 旱季
+        GLOBAL.NOMU_QA.DATA.SCHEMES[1].data.WORLD_TEMPERATURE_AND_RAIN.MAPPINGS.DEFAULT.WEATHER.MILD = "降雨" -- 温和季
+        GLOBAL.NOMU_QA.DATA.SCHEMES[1].data.WORLD_TEMPERATURE_AND_RAIN.MAPPINGS.DEFAULT.WEATHER.WET = "飓风" --  飓风季
+
+        GLOBAL.NOMU_QA.SCHEME.WORLD_TEMPERATURE_AND_RAIN.FORMATS.NO_RAIN = "{WORLD}气温：{TEMPERATURE}°，{WEATHER}尚未接近。"
         GLOBAL.NOMU_QA.SCHEME.WORLD_TEMPERATURE_AND_RAIN.MAPPINGS.DEFAULT.WORLD.SHIPWRECKED = "海难"
         GLOBAL.NOMU_QA.SCHEME.WORLD_TEMPERATURE_AND_RAIN.MAPPINGS.DEFAULT.WORLD.VOLCANO = "火山"
         GLOBAL.NOMU_QA.SCHEME.WORLD_TEMPERATURE_AND_RAIN.MAPPINGS.DEFAULT.WORLD.PORKLAND = "猪镇"
@@ -67,7 +78,7 @@ AddPrefabPostInit("world",function(inst)
         GLOBAL.NOMU_QA.SCHEME.WORLD_TEMPERATURE_AND_RAIN.MAPPINGS.DEFAULT.WEATHER.GREEN = "降雨" -- 雨季
         GLOBAL.NOMU_QA.SCHEME.WORLD_TEMPERATURE_AND_RAIN.MAPPINGS.DEFAULT.WEATHER.DRY = "降雨" -- 旱季
         GLOBAL.NOMU_QA.SCHEME.WORLD_TEMPERATURE_AND_RAIN.MAPPINGS.DEFAULT.WEATHER.MILD = "降雨" -- 温和季
-        GLOBAL.NOMU_QA.SCHEME.WORLD_TEMPERATURE_AND_RAIN.MAPPINGS.DEFAULT.WEATHER.WET = "降雨" --  飓风季
+        GLOBAL.NOMU_QA.SCHEME.WORLD_TEMPERATURE_AND_RAIN.MAPPINGS.DEFAULT.WEATHER.WET = "飓风" --  飓风季
     end)
 end)
 
@@ -467,17 +478,22 @@ end
 AddClassPostConstruct('screens/playerhud', function(PlayerHud)
     if getval(PlayerHud.OnMouseButton,"OnHUDMouseButton") then
         setval(PlayerHud.OnMouseButton,"OnHUDMouseButton",OnHUDMouseButton)
-        AddClassPostConstruct('widgets/invslot', function(SlotClass)
-            local _AnnounceItem = getval(SlotClass.OnControl,"AnnounceItem") or function(slot, classname) print("[快捷宣告(Nomu)补丁] 警告：AnnounceItem 函数get失败") end
+    else
+        print("[快捷宣告(Nomu)补丁] 警告：OnHUDMouseButton HOOK失败")
+    end
+
+    AddClassPostConstruct('widgets/invslot', function(SlotClass)
+        local _AnnounceItem = getval(SlotClass.OnControl,"AnnounceItem")
+        if _AnnounceItem then
             setval(_AnnounceItem,"Announce",Announce) -- 我修复了因Show Me导致的无法宣告暖石温度的BUG，现在需要把我修好的Announce函数设置到原AnnounceItem函数里
 
             PlayerHud._StatusAnnouncer.AnnounceItem = function(_, slot) -- 修复岛屿冒险模组宣告船只装备的物品时崩溃的问题
                 return _AnnounceItem(slot,'invslot')
             end
-        end)
-    else
-        print("[快捷宣告(Nomu)补丁] 警告：OnHUDMouseButton HOOK失败")
-    end
+        else
+            print("[快捷宣告(Nomu)补丁] 警告：AnnounceItem HOOK失败")
+        end
+    end)
 end)
 
 
