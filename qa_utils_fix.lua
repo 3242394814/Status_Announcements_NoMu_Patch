@@ -8,7 +8,7 @@ GLOBAL.QA_UTILS.PredictRainStart = function()
     local totalseconds = 0
     local rain = false
 
-    if world == "SHIPWRECKED" or world == "VOLCANO" then
+    if (world == "SHIPWRECKED" or world == "VOLCANO") then
         local ThisComponent = TheWorld.net.components.shipwreckedweather
         local _moisture = getval(ThisComponent.OnUpdate, "_moisture")
         local _moistureceil = getval(ThisComponent.OnUpdate, "_moistureceil")
@@ -96,7 +96,7 @@ GLOBAL.QA_UTILS.PredictRainStart = function()
 
             if world == "SURFACE" and season == "winter" and elapseddaysinseason == 2 then
                 moisturerate = 50
-            elseif world == "SHIPWRECKED" or world == "VOLCANO" then
+            elseif (world == "SHIPWRECKED" or world == "VOLCANO") then
                 if season == "green" then
                     seasonprogress = (elapseddaysinseason - 5) / (TheWorld.state.greenlength - 5)
                 elseif season == "wet" then
@@ -137,7 +137,7 @@ GLOBAL.QA_UTILS.PredictRainStop = function()
                 or "SURFACE"  -- 默认
     local totalseconds = 0
 
-    if world == "SHIPWRECKED" or world == "VOLCANO" and -- 海难 飓风倒计时
+    if (world == "SHIPWRECKED" or world == "VOLCANO") and -- 海难 飓风倒计时
                     getval(TheWorld.net.components.shipwreckedweather.OnUpdate, "_hurricane") and
                     getval(TheWorld.net.components.shipwreckedweather.OnUpdate, "_hurricane"):value() and
                     getval(TheWorld.net.components.shipwreckedweather.OnUpdate, "_hurricane_timer") and
