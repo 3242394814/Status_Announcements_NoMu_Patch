@@ -172,7 +172,24 @@ GLOBAL.QA_UTILS.PredictRainStop = function()
             -- totalseconds = difference / delta
 
         -- end
+    elseif world == "SURFACE" and -- 玻璃雨倒计时
+                    getval(TheWorld.net.components.weather.OnUpdate, "PRECIP_TYPES") and
+                    getval(TheWorld.net.components.weather.OnUpdate, "_preciptype") and
+                    getval(TheWorld.net.components.weather.OnUpdate, "_preciptype"):value() == getval(TheWorld.net.components.weather.OnUpdate, "PRECIP_TYPES").lunarhail and
+                    getval(TheWorld.net.components.weather.OnUpdate, "_lunarhaillevel") and
+                    getval(TheWorld.net.components.weather.OnUpdate, "LUNAR_HAIL_FLOOR") and
+                    getval(TheWorld.net.components.weather.OnUpdate, "LUNAR_HAIL_EVENT_RATE")
+    then
+        local info = TheWorld.net.components.weather.OnUpdate
 
+        local _lunarhaillevel = getval(info,"_lunarhaillevel")
+        local LUNAR_HAIL_FLOOR = getval(info,"LUNAR_HAIL_FLOOR")
+        local LUNAR_HAIL_EVENT_RATE = getval(info,"LUNAR_HAIL_EVENT_RATE")
+
+        local current_hail_level = _lunarhaillevel:value()
+        local amount_left = current_hail_level - LUNAR_HAIL_FLOOR
+        local delta = LUNAR_HAIL_EVENT_RATE.DURATION * 1
+        totalseconds = amount_left / delta
     else
         local PRECIP_RATE_SCALE = 10
         local MIN_PRECIP_RATE = .1
