@@ -230,8 +230,10 @@ end
 
 if ModManager:GetMod("workshop-2784715091").postinitfns.ComponentPostInit.clock then
     ModManager:GetMod("workshop-2784715091").postinitfns.ComponentPostInit.clock[1] = function(clock) -- 覆盖原模组的HOOK方法，兼容宣告海难/猪镇当前阶段剩余时间
-        local oldGetDebugString = clock.GetDebugString_tropical or clock.GetDebugString_plateau or clock.GetDebugString
-        local oldDump = clock.Dump_tropical or clock.Dump_plateau or clock.Dump
+        local SW = TheWorld:HasTag("island") or TheWorld:HasTag("volcano")
+        local HAM = TheWorld:HasTag("porkland")
+        local oldGetDebugString = SW and clock.GetDebugString_tropical or HAM and clock.GetDebugString_plateau or clock.GetDebugString
+        local oldDump = SW and clock.Dump_tropical or HAM and clock.Dump_plateau or clock.Dump
 
         local value
         value = getval(oldGetDebugString, '_phase')
