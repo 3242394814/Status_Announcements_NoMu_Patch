@@ -86,7 +86,7 @@ modimport("qa_utils_fix.lua")
 
 -- 宣告消息
 local function Announce(message, no_whisper)
-    message = message:gsub("(%d)\176(C|F)", "%1°%2") -- 修复无法宣告暖石温度的问题...show me用的 ° 是 "\176" 这个玩意无法被Say出来...
+    message = message:gsub("(%d)\176([CF）])", "%1°%2") -- 修复无法宣告暖石温度的问题...show me用的 ° 是 "\176" 这个玩意无法被Say出来...
     local whisper = GLOBAL.NOMU_QA.DATA.DEFAULT_WHISPER ~= TheInput:IsKeyDown(KEY_LCTRL)
     if no_whisper then
         whisper = false
