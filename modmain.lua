@@ -4,47 +4,7 @@ GLOBAL.setmetatable(env, {
     end
 })
 
-function getval(fn, path)
-    if fn == nil or type(fn)~="function" then return end
-    local val = fn
-    local i
-    for entry in path:gmatch("[^%.]+") do
-        i = 1
-        while true do
-            local name, value = debug.getupvalue(val, i)
-            if name == entry then
-                val = value
-                break
-            elseif name == nil then
-                return
-            end
-            i = i + 1
-        end
-    end
-    return val, i
-end
-
-function setval(fn, path, new)
-    if fn == nil or type(fn)~="function" then return end
-    local val = fn
-    local prev = nil
-    local i
-    for entry in path:gmatch("[^%.]+") do
-        i = 1
-        prev = val
-        while true do
-            local name, value = debug.getupvalue(val, i)
-            if name == entry then
-                val = value
-                break
-            elseif name == nil then
-                return
-            end
-            i = i + 1
-        end
-    end
-    debug.setupvalue(prev, i, new)
-end
+upvaluehelper = require "utils/bbgoat_upvaluehelper"
 
 if not rawget(_G, "NOMU_QA") then return end
 
@@ -475,17 +435,202 @@ local function OnHUDMouseButton(HUD)
     end
 end
 
+
+-- 将部分物品视为同一个prefab，解决宣告数量不准确的问题
+local ITEM_PREFAB_ALIAS = {
+    -- 鹿角
+    deer_antler1 = "deer_antler",
+    deer_antler2 = "deer_antler",
+    deer_antler3 = "deer_antler",
+    -- 还有啥呢？好难猜呀
+}
+
+local function CountItem_ALIAS(container, name, prefab)
+    local num_found = 0
+    local items = container:GetItems()
+    for _, v in pairs(items) do
+        if v and ITEM_PREFAB_ALIAS[v.prefab] == prefab and v:GetDisplayName() == name then
+            if v.replica.stackable ~= nil then
+                num_found = num_found + v.replica.stackable:StackSize()
+            else
+                num_found = num_found + 1
+            end
+        end
+    end
+
+    if container.GetActiveItem then
+        local active_item = container:GetActiveItem()
+        if active_item and ITEM_PREFAB_ALIAS[active_item.prefab] == prefab and active_item:GetDisplayName() == name then
+            if active_item.replica.stackable ~= nil then
+                num_found = num_found + active_item.replica.stackable:StackSize()
+            else
+                num_found = num_found + 1
+            end
+        end
+    end
+
+    if container.GetOverflowContainer then
+        local overflow = container:GetOverflowContainer()
+        if overflow ~= nil then
+            local overflow_found = CountItem_ALIAS(overflow, name, prefab)
+            num_found = num_found + overflow_found
+        end
+    end
+
+    return num_found
+end
+
+local get_container_name,CountItemWithName,SUSPICIOUS_MARBLE,RECHARGEABLE_PREFABS,SHOW_ME_ON
+
+local function AnnounceItem(slot, classname)
+    local item = slot.tile.item
+    local container = slot.container
+    local percent
+    local percent_type
+    if slot.tile.percent then
+        percent = slot.tile.percent:GetString()
+        percent_type = "DURABILITY"
+    elseif slot.tile.hasspoilage then
+        percent = math.floor(item.replica.inventoryitem.classified.perish:value() * (1 / .62)) .. "%"
+        percent_type = "FRESHNESS"
+    end
+    if container == nil or (container and container.type == "pack") then
+        container = ThePlayer.replica.inventory
+    end
+    local num_equipped = 0
+    local num_equipped_name = 0
+    if not container.type then
+        for _, _slot in pairs(EQUIPSLOTS) do
+            local equipped_item = container:GetEquippedItem(_slot)
+            if equipped_item and equipped_item.prefab == item.prefab then
+                num_equipped = num_equipped + (equipped_item.replica.stackable and equipped_item.replica.stackable:StackSize() or 1)
+                if equipped_item.name == item.name then
+                    num_equipped_name = num_equipped_name + (equipped_item.replica.stackable and equipped_item.replica.stackable:StackSize() or 1)
+                end
+            end
+        end
+    end
+    local container_name = get_container_name(container.type and container.inst)
+    if not container_name then
+        local player = container.inst.entity:GetParent()
+        local constructionbuilder = player and player.components and player.components.constructionbuilder
+        if constructionbuilder and constructionbuilder.constructionsite then
+            container_name = get_container_name(constructionbuilder.constructionsite)
+        end
+    end
+
+    local name = item.prefab and STRINGS.NAMES[item.prefab:upper()] or STRINGS.NOMU_QA.UNKNOWN_NAME
+    local _, num_found = container:Has(item.prefab, 1)
+    local num_found_name = CountItemWithName(container, item:GetDisplayName(), item.prefab)
+    num_found_name = num_found_name + num_equipped_name
+    num_found = num_found + num_equipped
+    local item_name = string.gsub(item:GetBasicDisplayName(), '\n', ' ')
+    if name == STRINGS.NOMU_QA.UNKNOWN_NAME and num_found == num_found_name then
+        name = item_name
+    end
+
+    local qa = GLOBAL.NOMU_QA.SCHEME.ITEM
+    local fmts = {
+        PRONOUN = GetMapping(qa, 'PRONOUN', 'I'),
+        NUM = num_found,
+        EQUIP_NUM = num_equipped,
+        ITEM = name,
+        ITEM_NAME = item_name ~= name and subfmt(GetMapping(qa, 'WORDS', 'ITEM_NAME'), { NUM = num_found_name, NAME = item_name }) or '',
+        IN_CONTAINER = '',
+        WITH_PERCENT = '',
+        POST_STATE = '',
+        SHOW_ME = '',
+        ITEM_NUM = num_equipped ~= num_found and subfmt(GetMapping(qa, 'WORDS', 'ITEM_NUM'), { NUM = num_found }) or '',
+    }
+
+    if container_name then
+        fmts.PRONOUN = GetMapping(qa, 'PRONOUN', 'WE')
+        fmts.IN_CONTAINER = subfmt(GetMapping(qa, 'WORDS', 'IN_CONTAINER'), {
+            NAME = container_name
+        })
+    end
+
+    if percent then
+        local this_one = num_found > 1 and GetMapping(qa, 'WORDS', 'THIS_ONE') or ''
+        fmts.WITH_PERCENT = subfmt(GetMapping(qa, 'WORDS', 'WITH_PERCENT'), {
+            THIS_ONE = this_one,
+            PERCENT = percent,
+            TYPE = GetMapping(qa, 'PERCENT_TYPE', percent_type)
+        })
+    end
+
+    if item.prefab == 'heatrock' then
+        --'heatrock_fantasy', 'heat_rock', 'heatrock_fire'
+        -- hash('heatrock_fantasy3.tex')
+        local temp_range = {
+            [4264163310] = 1, [3706253814] = 1, [2098310090] = 1,
+            [1108760303] = 2, [550850807] = 2, [3237874379] = 2,
+            [2248324592] = 3, [1690415096] = 3, [82471372] = 3,
+            [3387888881] = 4, [2829979385] = 4, [1222035661] = 4,
+            [232485874] = 5, [3969543674] = 5, [2361599950] = 5
+        }
+        local temp_category = { 'COLD', 'COOL', 'NORMAL', 'WARM', 'HOT' }
+        if item.replica and item.replica.inventoryitem and item.replica.inventoryitem.GetImage then
+            local range = temp_range[item.replica.inventoryitem:GetImage()]
+            if range and temp_category[range] then
+                fmts.POST_STATE = GetMapping(qa, 'HEAT_ROCK', temp_category[range])
+            end
+        end
+    end
+
+    if SUSPICIOUS_MARBLE[item.prefab] then
+        fmts.POST_STATE = subfmt(GetMapping(qa, 'WORDS', 'SUSPICIOUS_MARBLE'), { NAME = SUSPICIOUS_MARBLE[item.prefab] })
+    end
+
+    if RECHARGEABLE_PREFABS[item.prefab] and item.replica.inventoryitem.classified then
+        local seconds = (180 - item.replica.inventoryitem.classified.recharge:value()) / 180 * RECHARGEABLE_PREFABS[item.prefab]
+        local minutes = math.modf(seconds / 60)
+        if seconds == 0 then
+            fmts.POST_STATE = GetMapping(qa, 'RECHARGE', 'FULL')
+        else
+            seconds = math.modf(math.fmod(seconds, 60))
+            local message = ''
+            if minutes > 0 then
+                message = message .. tostring(minutes) .. GetMapping(qa, 'TIME', 'MINUTES')
+            end
+            message = message .. tostring(seconds) .. GetMapping(qa, 'TIME', 'SECONDS')
+            fmts.POST_STATE = subfmt(GetMapping(qa, 'RECHARGE', 'CHARGING'), { TIME = message })
+        end
+    end
+
+    if SHOW_ME_ON and (GLOBAL.NOMU_QA.DATA.SHOW_ME == 1 or GLOBAL.NOMU_QA.DATA.SHOW_ME == 2 and item:HasTag('unwrappable')) then
+        local n_line_name = #(string.split(item:GetDisplayName(), '\n'))
+        local items = GLOBAL.QA_UTILS.ParseHoverText(n_line_name + (classname == 'invslot' and 3 or 2), -1)
+        if #items > 0 then
+            fmts.SHOW_ME = subfmt(GetMapping(qa, 'WORDS', 'SHOW_ME'), { SHOW_ME = table.concat(items, STRINGS.NOMU_QA.COMMA) })
+        end
+    end
+
+    -- 修改部分
+    if ITEM_PREFAB_ALIAS[item.prefab] then
+        fmts.NUM = CountItem_ALIAS(container, item:GetDisplayName(), ITEM_PREFAB_ALIAS[item.prefab])
+    end
+
+    return Announce(subfmt(classname == 'invslot' and qa.FORMATS.INV_SLOT or qa.FORMATS.EQUIP_SLOT, fmts))
+end
+
 AddClassPostConstruct('screens/playerhud', function(PlayerHud)
-    if getval(PlayerHud.OnMouseButton,"OnHUDMouseButton") then
-        setval(PlayerHud.OnMouseButton,"OnHUDMouseButton",OnHUDMouseButton)
+    if upvaluehelper.GetUpvalue(PlayerHud.OnMouseButton, "OnHUDMouseButton") then
+        upvaluehelper.SetUpvalue(PlayerHud.OnMouseButton, OnHUDMouseButton, "OnHUDMouseButton")
     else
         print("[快捷宣告(Nomu)补丁] 警告：OnHUDMouseButton HOOK失败")
     end
 
     AddClassPostConstruct('widgets/invslot', function(SlotClass)
-        local _AnnounceItem = getval(SlotClass.OnControl,"AnnounceItem")
+        local _AnnounceItem = upvaluehelper.GetUpvalue(SlotClass.OnControl, "AnnounceItem")
         if _AnnounceItem then
-            setval(_AnnounceItem,"Announce",Announce) -- 我修复了因Show Me导致的无法宣告暖石温度的BUG，现在需要把我修好的Announce函数设置到原AnnounceItem函数里
+            get_container_name = upvaluehelper.GetUpvalue(_AnnounceItem, "get_container_name")
+            CountItemWithName = upvaluehelper.GetUpvalue(_AnnounceItem, "CountItemWithName")
+            SUSPICIOUS_MARBLE = upvaluehelper.GetUpvalue(_AnnounceItem, "SUSPICIOUS_MARBLE")
+            RECHARGEABLE_PREFABS = upvaluehelper.GetUpvalue(_AnnounceItem, "RECHARGEABLE_PREFABS")
+            SHOW_ME_ON = upvaluehelper.GetUpvalue(_AnnounceItem, "SHOW_ME_ON")
+
+            upvaluehelper.SetUpvalue(SlotClass.OnControl, AnnounceItem, "AnnounceItem")
 
             PlayerHud._StatusAnnouncer.AnnounceItem = function(_, slot) -- 修复岛屿冒险模组宣告船只装备的物品时崩溃的问题
                 return _AnnounceItem(slot,'invslot')
@@ -500,7 +645,7 @@ end)
 
 --技能树
 AddClassPostConstruct('widgets/redux/skilltreebuilder', function(SkillTreeBuilder)
-    local oldOnControl = getval(SkillTreeBuilder.OnControl,"oldOnControl")
+    local oldOnControl = upvaluehelper.GetUpvalue(SkillTreeBuilder.OnControl, "oldOnControl")
     if oldOnControl then
         function SkillTreeBuilder:OnControl(control, down, ...)
             if down and control == GLOBAL.CONTROL_ACCEPT and TheInput:IsControlPressed(GLOBAL.CONTROL_FORCE_INSPECT) then
