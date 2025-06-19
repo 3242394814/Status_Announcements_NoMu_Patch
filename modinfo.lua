@@ -9,10 +9,11 @@ description = [[
 修复无法正常宣告海难/猪镇当前(白天/黄昏/夜晚)阶段剩余时间的BUG
 修复宣告IA船上装备的物品时崩溃的问题
 修复因Show Me导致的无法宣告暖石信息的问题
+修复“鹿角”数量宣告不准确的问题
 
 优化季节宣告相关功能
 ]]
-version = "1.1.2"
+version = "1.1.3"
 dst_compatible = true
 dont_starve_compatible = false
 client_only_mod = true
