@@ -13,9 +13,9 @@ description = [[
 修复无法宣告玩家骷髅的问题
 优化季节宣告相关功能
 
-修复基地投影模组无法捕获队友宣告的建筑坐标的问题（需要开启原基地投影模组）
+修复基地投影模组无法捕获队友宣告的建筑坐标的问题（需要开启原基地投影模组，需要发送方和接收方同时开启此模组）
 ]]
-version = "1.1.4"
+version = "1.1.5"
 dst_compatible = true
 dont_starve_compatible = false
 client_only_mod = true
