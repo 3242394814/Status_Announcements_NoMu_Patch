@@ -10,9 +10,9 @@ GLOBAL.QA_UTILS.PredictRainStart = function()
 
     if (world == "SHIPWRECKED" or world == "VOLCANO") then
         local ThisComponent = TheWorld.net.components.shipwreckedweather
-        local _moisture = upvaluehelper.GetUpvalue(ThisComponent.OnUpdate, "_moisture")
-        local _moistureceil = upvaluehelper.GetUpvalue(ThisComponent.OnUpdate, "_moistureceil")
-        local _moisturerate = upvaluehelper.GetUpvalue(ThisComponent.OnUpdate, "_moisturerate")
+        local _moisture = Upvaluehelper.GetUpvalue(ThisComponent.OnUpdate, "_moisture")
+        local _moistureceil = Upvaluehelper.GetUpvalue(ThisComponent.OnUpdate, "_moistureceil")
+        local _moisturerate = Upvaluehelper.GetUpvalue(ThisComponent.OnUpdate, "_moisturerate")
 
         if _moistureceil and _moistureceil:value() > 0 then
             if not (_moisture and _moistureceil and _moisturerate) then return world, totalseconds, rain end
@@ -138,21 +138,21 @@ GLOBAL.QA_UTILS.PredictRainStop = function()
     local totalseconds = 0
 
     if (world == "SHIPWRECKED" or world == "VOLCANO") and -- 海难 飓风倒计时
-                    upvaluehelper.GetUpvalue(TheWorld.net.components.shipwreckedweather.OnUpdate, "_hurricane") and
-                    upvaluehelper.GetUpvalue(TheWorld.net.components.shipwreckedweather.OnUpdate, "_hurricane"):value() and
-                    upvaluehelper.GetUpvalue(TheWorld.net.components.shipwreckedweather.OnUpdate, "_hurricane_timer") and
-                    upvaluehelper.GetUpvalue(TheWorld.net.components.shipwreckedweather.OnUpdate, "_hurricane_duration")
+                    Upvaluehelper.GetUpvalue(TheWorld.net.components.shipwreckedweather.OnUpdate, "_hurricane") and
+                    Upvaluehelper.GetUpvalue(TheWorld.net.components.shipwreckedweather.OnUpdate, "_hurricane"):value() and
+                    Upvaluehelper.GetUpvalue(TheWorld.net.components.shipwreckedweather.OnUpdate, "_hurricane_timer") and
+                    Upvaluehelper.GetUpvalue(TheWorld.net.components.shipwreckedweather.OnUpdate, "_hurricane_duration")
     then
         local ThisComponent = TheWorld.net.components.shipwreckedweather
-        -- local _hurricane = upvaluehelper.GetUpvalue(ThisComponent.OnUpdate, "_hurricane")
-        local _hurricane_timer = upvaluehelper.GetUpvalue(ThisComponent.OnUpdate, "_hurricane_timer")
-        local _hurricane_duration = upvaluehelper.GetUpvalue(ThisComponent.OnUpdate, "_hurricane_duration")
+        -- local _hurricane = Upvaluehelper.GetUpvalue(ThisComponent.OnUpdate, "_hurricane")
+        local _hurricane_timer = Upvaluehelper.GetUpvalue(ThisComponent.OnUpdate, "_hurricane_timer")
+        local _hurricane_duration = Upvaluehelper.GetUpvalue(ThisComponent.OnUpdate, "_hurricane_duration")
 
         -- local precip_rate = 0
-        -- local PRECIP_RATE_SCALE = upvaluehelper.GetUpvalue(ThisComponent.OnUpdate, "PRECIP_RATE_SCALE")
-        -- local _moisture = upvaluehelper.GetUpvalue(ThisComponent.OnUpdate, "_moisture")
-        -- local _moisturefloor = upvaluehelper.GetUpvalue(ThisComponent.OnUpdate, "_moisturefloor")
-        -- local CalculatePrecipitationRate = upvaluehelper.GetUpvalue(ThisComponent.OnUpdate, "CalculatePrecipitationRate")
+        -- local PRECIP_RATE_SCALE = Upvaluehelper.GetUpvalue(ThisComponent.OnUpdate, "PRECIP_RATE_SCALE")
+        -- local _moisture = Upvaluehelper.GetUpvalue(ThisComponent.OnUpdate, "_moisture")
+        -- local _moisturefloor = Upvaluehelper.GetUpvalue(ThisComponent.OnUpdate, "_moisturefloor")
+        -- local CalculatePrecipitationRate = Upvaluehelper.GetUpvalue(ThisComponent.OnUpdate, "CalculatePrecipitationRate")
 
         -- if _hurricane and _hurricane:value() then
             -- if not (_hurricane_duration and _hurricane_timer) then totalseconds = 0 return world, totalseconds end
@@ -173,18 +173,18 @@ GLOBAL.QA_UTILS.PredictRainStop = function()
 
         -- end
     elseif world == "SURFACE" and -- 玻璃雨倒计时
-                    upvaluehelper.GetUpvalue(TheWorld.net.components.weather.OnUpdate, "PRECIP_TYPES") and
-                    upvaluehelper.GetUpvalue(TheWorld.net.components.weather.OnUpdate, "_preciptype") and
-                    upvaluehelper.GetUpvalue(TheWorld.net.components.weather.OnUpdate, "_preciptype"):value() == upvaluehelper.GetUpvalue(TheWorld.net.components.weather.OnUpdate, "PRECIP_TYPES").lunarhail and
-                    upvaluehelper.GetUpvalue(TheWorld.net.components.weather.OnUpdate, "_lunarhaillevel") and
-                    upvaluehelper.GetUpvalue(TheWorld.net.components.weather.OnUpdate, "LUNAR_HAIL_FLOOR") and
-                    upvaluehelper.GetUpvalue(TheWorld.net.components.weather.OnUpdate, "LUNAR_HAIL_EVENT_RATE")
+                    Upvaluehelper.GetUpvalue(TheWorld.net.components.weather.OnUpdate, "PRECIP_TYPES") and
+                    Upvaluehelper.GetUpvalue(TheWorld.net.components.weather.OnUpdate, "_preciptype") and
+                    Upvaluehelper.GetUpvalue(TheWorld.net.components.weather.OnUpdate, "_preciptype"):value() == Upvaluehelper.GetUpvalue(TheWorld.net.components.weather.OnUpdate, "PRECIP_TYPES").lunarhail and
+                    Upvaluehelper.GetUpvalue(TheWorld.net.components.weather.OnUpdate, "_lunarhaillevel") and
+                    Upvaluehelper.GetUpvalue(TheWorld.net.components.weather.OnUpdate, "LUNAR_HAIL_FLOOR") and
+                    Upvaluehelper.GetUpvalue(TheWorld.net.components.weather.OnUpdate, "LUNAR_HAIL_EVENT_RATE")
     then
         local info = TheWorld.net.components.weather.OnUpdate
 
-        local _lunarhaillevel = upvaluehelper.GetUpvalue(info,"_lunarhaillevel")
-        local LUNAR_HAIL_FLOOR = upvaluehelper.GetUpvalue(info,"LUNAR_HAIL_FLOOR")
-        local LUNAR_HAIL_EVENT_RATE = upvaluehelper.GetUpvalue(info,"LUNAR_HAIL_EVENT_RATE")
+        local _lunarhaillevel = Upvaluehelper.GetUpvalue(info,"_lunarhaillevel")
+        local LUNAR_HAIL_FLOOR = Upvaluehelper.GetUpvalue(info,"LUNAR_HAIL_FLOOR")
+        local LUNAR_HAIL_EVENT_RATE = Upvaluehelper.GetUpvalue(info,"LUNAR_HAIL_EVENT_RATE")
 
         local current_hail_level = _lunarhaillevel:value()
         local amount_left = current_hail_level - LUNAR_HAIL_FLOOR
@@ -236,18 +236,18 @@ if ModManager:GetMod("workshop-2784715091").postinitfns.ComponentPostInit.clock 
         local oldDump = SW and clock.Dump_tropical or HAM and clock.Dump_plateau or clock.Dump
 
         local value
-        value = upvaluehelper.GetUpvalue(oldGetDebugString, '_phase')
+        value = Upvaluehelper.GetUpvalue(oldGetDebugString, '_phase')
         local _phase
         clock._phase = value
         _phase = value
 
         local _remainingtimeinphase
-        value = upvaluehelper.GetUpvalue(oldGetDebugString, '_remainingtimeinphase')
+        value = Upvaluehelper.GetUpvalue(oldGetDebugString, '_remainingtimeinphase')
         clock._remainingtimeinphase = value
         _remainingtimeinphase = value
 
-        local _segs = upvaluehelper.GetUpvalue(oldDump, '_segs')
-        local _totaltimeinphase = upvaluehelper.GetUpvalue(oldDump,'_totaltimeinphase')
+        local _segs = Upvaluehelper.GetUpvalue(oldDump, '_segs')
+        local _totaltimeinphase = Upvaluehelper.GetUpvalue(oldDump,'_totaltimeinphase')
 
         if _totaltimeinphase and _remainingtimeinphase and _segs and _phase then
             clock.CalcRemainTimeOfDay = function()

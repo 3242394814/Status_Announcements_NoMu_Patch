@@ -4,7 +4,7 @@ GLOBAL.setmetatable(env, {
     end
 })
 
-upvaluehelper = require "utils/bbgoat_upvaluehelper"
+Upvaluehelper = require "utils/bbgoat_upvaluehelper"
 
 if not rawget(_G, "NOMU_QA") then return end
 
@@ -615,22 +615,22 @@ local function AnnounceItem(slot, classname)
 end
 
 AddClassPostConstruct('screens/playerhud', function(PlayerHud)
-    if upvaluehelper.GetUpvalue(PlayerHud.OnMouseButton, "OnHUDMouseButton") then
-        upvaluehelper.SetUpvalue(PlayerHud.OnMouseButton, OnHUDMouseButton, "OnHUDMouseButton")
+    if Upvaluehelper.GetUpvalue(PlayerHud.OnMouseButton, "OnHUDMouseButton") then
+        Upvaluehelper.SetUpvalue(PlayerHud.OnMouseButton, OnHUDMouseButton, "OnHUDMouseButton")
     else
         print("[快捷宣告(Nomu)补丁] 警告：OnHUDMouseButton HOOK失败")
     end
 
     AddClassPostConstruct('widgets/invslot', function(SlotClass)
-        local _AnnounceItem = upvaluehelper.GetUpvalue(SlotClass.OnControl, "AnnounceItem")
+        local _AnnounceItem = Upvaluehelper.GetUpvalue(SlotClass.OnControl, "AnnounceItem")
         if _AnnounceItem then
-            get_container_name = upvaluehelper.GetUpvalue(_AnnounceItem, "get_container_name")
-            CountItemWithName = upvaluehelper.GetUpvalue(_AnnounceItem, "CountItemWithName")
-            SUSPICIOUS_MARBLE = upvaluehelper.GetUpvalue(_AnnounceItem, "SUSPICIOUS_MARBLE")
-            RECHARGEABLE_PREFABS = upvaluehelper.GetUpvalue(_AnnounceItem, "RECHARGEABLE_PREFABS")
-            SHOW_ME_ON = upvaluehelper.GetUpvalue(_AnnounceItem, "SHOW_ME_ON")
+            get_container_name = Upvaluehelper.GetUpvalue(_AnnounceItem, "get_container_name")
+            CountItemWithName = Upvaluehelper.GetUpvalue(_AnnounceItem, "CountItemWithName")
+            SUSPICIOUS_MARBLE = Upvaluehelper.GetUpvalue(_AnnounceItem, "SUSPICIOUS_MARBLE")
+            RECHARGEABLE_PREFABS = Upvaluehelper.GetUpvalue(_AnnounceItem, "RECHARGEABLE_PREFABS")
+            SHOW_ME_ON = Upvaluehelper.GetUpvalue(_AnnounceItem, "SHOW_ME_ON")
 
-            upvaluehelper.SetUpvalue(SlotClass.OnControl, AnnounceItem, "AnnounceItem")
+            Upvaluehelper.SetUpvalue(SlotClass.OnControl, AnnounceItem, "AnnounceItem")
 
             PlayerHud._StatusAnnouncer.AnnounceItem = function(_, slot) -- 修复岛屿冒险模组宣告船只装备的物品时崩溃的问题
                 return _AnnounceItem(slot,'invslot')
@@ -645,7 +645,7 @@ end)
 
 --技能树
 AddClassPostConstruct('widgets/redux/skilltreebuilder', function(SkillTreeBuilder)
-    local oldOnControl = upvaluehelper.GetUpvalue(SkillTreeBuilder.OnControl, "oldOnControl")
+    local oldOnControl = Upvaluehelper.GetUpvalue(SkillTreeBuilder.OnControl, "oldOnControl")
     if oldOnControl then
         function SkillTreeBuilder:OnControl(control, down, ...)
             if down and control == GLOBAL.CONTROL_ACCEPT and TheInput:IsControlPressed(GLOBAL.CONTROL_FORCE_INSPECT) then
