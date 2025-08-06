@@ -15,7 +15,7 @@ description = [[
 
 修复基地投影模组无法捕获队友宣告的建筑坐标的问题（需要开启原基地投影模组，需要发送方和接收方同时开启此模组）
 ]]
-version = "1.1.5"
+version = "1.1.6"
 dst_compatible = true
 dont_starve_compatible = false
 client_only_mod = true

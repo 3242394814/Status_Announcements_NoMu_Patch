@@ -8,7 +8,7 @@ Upvaluehelper = require "utils/bbgoat_upvaluehelper"
 
 -- 给基地投影模组也擦个屁股，现在TheNet:Say的内容不能有\n，否则第二行的内容会被吞。
 -- NoMu去哪了！？？？？？？？？？
-if (GLOBAL.BSPJ and GLOBAL.BSPJ.DATA) and (STRINGS.BSPJ and STRINGS.BSPJ.QUICK_ANNOUNCE_FORMAT) then
+if rawget(_G,"BSPJ") and (GLOBAL.BSPJ.DATA) and (STRINGS.BSPJ and STRINGS.BSPJ.QUICK_ANNOUNCE_FORMAT) then
     STRINGS.BSPJ.QUICK_ANNOUNCE_FORMAT = string.gsub(STRINGS.BSPJ.QUICK_ANNOUNCE_FORMAT, "\n", " | ")
 
     -- 捕获聊天信息中的坐标
