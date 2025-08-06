@@ -615,28 +615,20 @@ local function AnnounceItem(slot, classname)
 end
 
 AddClassPostConstruct('screens/playerhud', function(PlayerHud)
-    if Upvaluehelper.GetUpvalue(PlayerHud.OnMouseButton, "OnHUDMouseButton") then
-        Upvaluehelper.SetUpvalue(PlayerHud.OnMouseButton, OnHUDMouseButton, "OnHUDMouseButton")
-    else
-        print("[快捷宣告(Nomu)补丁] 警告：OnHUDMouseButton HOOK失败")
-    end
+    Upvaluehelper.SetUpvalue(PlayerHud.OnMouseButton, OnHUDMouseButton, "OnHUDMouseButton")
 
     AddClassPostConstruct('widgets/invslot', function(SlotClass)
         local _AnnounceItem = Upvaluehelper.GetUpvalue(SlotClass.OnControl, "AnnounceItem")
-        if _AnnounceItem then
-            get_container_name = Upvaluehelper.GetUpvalue(_AnnounceItem, "get_container_name")
-            CountItemWithName = Upvaluehelper.GetUpvalue(_AnnounceItem, "CountItemWithName")
-            SUSPICIOUS_MARBLE = Upvaluehelper.GetUpvalue(_AnnounceItem, "SUSPICIOUS_MARBLE")
-            RECHARGEABLE_PREFABS = Upvaluehelper.GetUpvalue(_AnnounceItem, "RECHARGEABLE_PREFABS")
-            SHOW_ME_ON = Upvaluehelper.GetUpvalue(_AnnounceItem, "SHOW_ME_ON")
+        get_container_name = Upvaluehelper.GetUpvalue(_AnnounceItem, "get_container_name")
+        CountItemWithName = Upvaluehelper.GetUpvalue(_AnnounceItem, "CountItemWithName")
+        SUSPICIOUS_MARBLE = Upvaluehelper.GetUpvalue(_AnnounceItem, "SUSPICIOUS_MARBLE")
+        RECHARGEABLE_PREFABS = Upvaluehelper.GetUpvalue(_AnnounceItem, "RECHARGEABLE_PREFABS")
+        SHOW_ME_ON = Upvaluehelper.GetUpvalue(_AnnounceItem, "SHOW_ME_ON")
 
-            Upvaluehelper.SetUpvalue(SlotClass.OnControl, AnnounceItem, "AnnounceItem")
+        Upvaluehelper.SetUpvalue(SlotClass.OnControl, AnnounceItem, "AnnounceItem")
 
-            PlayerHud._StatusAnnouncer.AnnounceItem = function(_, slot) -- 修复岛屿冒险模组宣告船只装备的物品时崩溃的问题
-                return _AnnounceItem(slot,'invslot')
-            end
-        else
-            print("[快捷宣告(Nomu)补丁] 警告：AnnounceItem HOOK失败")
+        PlayerHud._StatusAnnouncer.AnnounceItem = function(_, slot) -- 修复岛屿冒险模组宣告船只装备的物品时崩溃的问题
+            return _AnnounceItem(slot,'invslot')
         end
     end)
 end)
@@ -646,23 +638,182 @@ end)
 --技能树
 AddClassPostConstruct('widgets/redux/skilltreebuilder', function(SkillTreeBuilder)
     local oldOnControl = Upvaluehelper.GetUpvalue(SkillTreeBuilder.OnControl, "oldOnControl")
-    if oldOnControl then
-        function SkillTreeBuilder:OnControl(control, down, ...)
-            if down and control == GLOBAL.CONTROL_ACCEPT and TheInput:IsControlPressed(GLOBAL.CONTROL_FORCE_INSPECT) then
-                for k, v in pairs(self.skillgraphics) do
-                    if v.button and v.button.focus and v.status and self.skilltreedef and self.skilltreedef[k] and self.skilltreedef[k].title then
-                        local name = self.fromfrontend and type(self.fromfrontend) == "table" and self.fromfrontend.data and self.fromfrontend.data.name or '' -- 加一个类型验证来修复选人界面宣告时崩溃的问题
-                        if v.status.activated then
-                            return Announce(subfmt(GLOBAL.NOMU_QA.SCHEME.SKILL_TREE.FORMATS.ACTIVATED, { NAME = name, SKILL = self.skilltreedef[k].title }))
-                        elseif v.status.activatable then
-                            return Announce(subfmt(GLOBAL.NOMU_QA.SCHEME.SKILL_TREE.FORMATS.CAN_ACTIVATE, { NAME = name, SKILL = self.skilltreedef[k].title }))
-                        end
+    function SkillTreeBuilder:OnControl(control, down, ...)
+        if down and control == GLOBAL.CONTROL_ACCEPT and TheInput:IsControlPressed(GLOBAL.CONTROL_FORCE_INSPECT) then
+            for k, v in pairs(self.skillgraphics) do
+                if v.button and v.button.focus and v.status and self.skilltreedef and self.skilltreedef[k] and self.skilltreedef[k].title then
+                    local name = self.fromfrontend and type(self.fromfrontend) == "table" and self.fromfrontend.data and self.fromfrontend.data.name or '' -- 加一个类型验证来修复选人界面宣告时崩溃的问题
+                    if v.status.activated then
+                        return Announce(subfmt(GLOBAL.NOMU_QA.SCHEME.SKILL_TREE.FORMATS.ACTIVATED, { NAME = name, SKILL = self.skilltreedef[k].title }))
+                    elseif v.status.activatable then
+                        return Announce(subfmt(GLOBAL.NOMU_QA.SCHEME.SKILL_TREE.FORMATS.CAN_ACTIVATE, { NAME = name, SKILL = self.skilltreedef[k].title }))
                     end
                 end
             end
-            return oldOnControl(self, control, down, ...)
         end
-    else
-        print("[快捷宣告(Nomu)补丁] 警告：技能树宣告相关功能HOOK失败")
+        return oldOnControl(self, control, down, ...)
     end
 end)
+
+
+
+-- 宣告周围物品 重写（此部分代码定义在原模组modmain.lua的第1199行）
+
+local IsDefaultScreen
+
+-- 删除原模组添加的事件
+local event = TheInput.onmousebutton.events.onmousebutton
+for i,_ in pairs (event) do
+    local fn = i.fn
+    local data = debug.getinfo(fn, "S")
+    if string.match(data.source, "mods/workshop%-2784715091/modmain.lua") then
+        IsDefaultScreen = Upvaluehelper.GetUpvalue(fn,"IsDefaultScreen")
+        event[i] = nil
+    end
+end
+
+-- 左键宣告周围物品
+AddComponentPostInit("playercontroller", function(self, inst)
+    if inst ~= GLOBAL.ThePlayer then return end
+    local PlayerControllerOnControl = self.OnControl
+    self.OnControl = function(self, control, down, ...)
+
+        if not (IsDefaultScreen() and TheInput:IsControlPressed(CONTROL_FORCE_INSPECT) and TheInput:IsKeyDown(KEY_LSHIFT) and down) then
+            return PlayerControllerOnControl(self, control, down, ...)
+        end
+
+        local entity = ConsoleWorldEntityUnderMouse()
+        local qa = GLOBAL.NOMU_QA.SCHEME.ENV
+        if control == GLOBAL.CONTROL_PRIMARY then -- 鼠标左键点击
+            if entity then
+                if not TheInput:IsKeyDown(KEY_LCTRL) and entity:HasTag('player') then
+                    Announce(subfmt(GLOBAL.NOMU_QA.SCHEME.PLAYER.FORMATS.DEFAULT, { NAME = entity:GetDisplayName() }))
+                    return
+                end
+                local px, py, pz = entity:GetPosition():Get()
+                local entities = TheSim:FindEntities(px, py, pz, 40)
+                local count_name = 0
+                local count_prefab = 0
+                for _, v in ipairs(entities) do
+                    if v.entity:IsVisible() and v.prefab == entity.prefab then
+                        if v.replica and v.replica.stackable ~= nil then
+                            count_prefab = count_prefab + v.replica.stackable:StackSize()
+                            if v:GetDisplayName() == entity:GetDisplayName() then
+                                count_name = count_name + v.replica.stackable:StackSize()
+                            end
+                        else
+                            count_prefab = count_prefab + 1
+                            if v:GetDisplayName() == entity:GetDisplayName() then
+                                count_name = count_name + 1
+                            end
+                        end
+                    end
+                end
+                local prefab_name = entity.prefab and STRINGS.NAMES[entity.prefab:upper()]
+                local no_whisper = entity:HasTag('player')
+                local display_name = string.gsub(entity:GetDisplayName(), '\n', ' ')
+                if SUSPICIOUS_MARBLE[entity.prefab] then
+                    prefab_name = prefab_name .. ' ' .. SUSPICIOUS_MARBLE[entity.prefab]
+                    display_name = prefab_name
+                end
+
+                local show_me = ''
+                if SHOW_ME_ON and (GLOBAL.NOMU_QA.DATA.SHOW_ME == 1 or GLOBAL.NOMU_QA.DATA.SHOW_ME == 2 and entity:HasTag('unwrappable')) then
+                    local n_line_name = #(string.split(entity:GetDisplayName(), '\n'))
+                    local items = GLOBAL.QA_UTILS.ParseHoverText(n_line_name + 1, nil, nil, 2)
+                    if #items > 0 then
+                        show_me = subfmt(GetMapping(qa, 'WORDS', 'SHOW_ME'), { SHOW_ME = table.concat(items, STRINGS.NOMU_QA.COMMA) })
+                    end
+                end
+
+                if not prefab_name then
+                    if count_name == 1 then
+                        Announce(subfmt(qa.FORMATS.SINGLE, { NAME = display_name, SHOW_ME = show_me }), no_whisper)
+                        return
+                    else
+                        Announce(subfmt(qa.FORMATS.DEFAULT, { NUM = count_name, NAME = display_name, SHOW_ME = show_me }), no_whisper)
+                        return
+                    end
+                else
+                    if prefab_name ~= display_name then
+                        Announce(subfmt(qa.FORMATS.NAMED, { NUM_PREFAB = count_prefab, PREFAB_NAME = prefab_name, NUM = count_name, NAME = display_name, SHOW_ME = show_me }), no_whisper)
+                        return
+                    else
+                        Announce(subfmt(qa.FORMATS.DEFAULT, { NUM = count_prefab, NAME = prefab_name, SHOW_ME = show_me }), no_whisper)
+                        return
+                    end
+                end
+            end
+        end
+        return PlayerControllerOnControl(self, control, down, ...)
+    end
+end)
+
+-- 中键宣告
+TheInput:AddMouseButtonHandler(function(button, down)
+    if not (IsDefaultScreen() and TheInput:IsControlPressed(CONTROL_FORCE_INSPECT) and TheInput:IsKeyDown(KEY_LSHIFT) and down) then
+        return
+    end
+
+    local entity = ConsoleWorldEntityUnderMouse()
+    local qa = GLOBAL.NOMU_QA.SCHEME.ENV
+    if button == MOUSEBUTTON_MIDDLE then -- 鼠标中键点击，上面的方法只能识别到鼠标左右键，所以中键维持原样
+        if entity then
+            if not TheInput:IsKeyDown(KEY_LCTRL) and entity:HasTag('player') then
+                if entity == ThePlayer then
+                    Announce(subfmt(GLOBAL.NOMU_QA.SCHEME.PLAYER.FORMATS.PING, { PING = TheNet:GetAveragePing() }))
+                else
+                    Announce(subfmt(GLOBAL.NOMU_QA.SCHEME.PLAYER.FORMATS.GREET, { NAME = entity:GetDisplayName() }))
+                end
+                return
+            end
+            ThePlayer.components.talker:Say(subfmt(qa.FORMATS.CODE, { PREFAB = entity.prefab, NAME = entity:GetDisplayName() }), 5)
+        end
+    end
+end)
+
+
+
+
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+-- 给基地投影模组也擦个屁股，现在TheNet:Say的内容不能有\n，否则第二行的内容会被吞。
+-- NoMu去哪了！？？？？？？？？？
+if STRINGS.BSPJ and STRINGS.BSPJ.QUICK_ANNOUNCE_FORMAT then -- 判断是否有基地投影的字符串被加载从而判断基地投影模组是否开启
+    STRINGS.BSPJ.QUICK_ANNOUNCE_FORMAT = string.gsub(STRINGS.BSPJ.QUICK_ANNOUNCE_FORMAT, "\n", " | ")
+
+    -- 捕获聊天信息中的坐标
+    local oldNetworking_Say = GLOBAL.Networking_Say
+    GLOBAL.Networking_Say = function(guid, userid, name, prefab, message, ...)
+        if GLOBAL.BSPJ.DATA.CAPTURE_ANNOUNCE and message and ThePlayer and (GLOBAL.BSPJ.DATA.CAPTURE_SELF or userid ~= ThePlayer.userid) then
+            -- '[BSPJ] 坐标(%.2f, %.2f, %.2f)需要一个"%s" | (%s#%d#%.2f#%s#%s#%s#%.2f#%.2f#%.2f)'
+            local _, _, x, y, z, n, p, layer, rotation, build, anim, bank, s1, s2, s3 = string.find(
+                    message, '%[BSPJ][^(]-%(([^,]*),%s*([^,]*),%s*([^)]*)%)[^"]-"(.*)" | %(([^#]*)#([^#]*)#([^#]*)#([^#]*)#([^#]*)#([^#]*)#([^#]*)#([^#]*)#([^#]*)%)')
+            if x and y and z and n and p and layer and rotation and build and s1 and s2 and s3 then
+                x, y, z, layer, rotation, s1, s2, s3 = tonumber(x), tonumber(y), tonumber(z), tonumber(layer), tonumber(rotation), tonumber(s1), tonumber(s2), tonumber(s3)
+                if anim == 'nil' then
+                    anim = nil
+                end
+                if bank == 'nil' then
+                    bank = nil
+                end
+                local flag = true
+                for _, item in ipairs(GLOBAL.BSPJ.ANNOUNCEMENTS) do
+                    if item.prefab == p and item.x == x and item.y == y and item.z == z and item.name == n then
+                        flag = false
+                        break
+                    end
+                end
+                if flag then
+                    table.insert(GLOBAL.BSPJ.ANNOUNCEMENTS, 1, {
+                        announcer = name, x = x, y = y, z = z, name = n, prefab = p,
+                        layer = layer, build = build, anim = anim, bank = bank,
+                        scale = { s1, s2, s3 }, rotation = rotation
+                    })
+                    ThePlayer.components.talker:Say(STRINGS.BSPJ.MESSAGE_CAPTURED)
+                end
+            end
+        end
+        return oldNetworking_Say(guid, userid, name, prefab, message, ...)
+    end
+end

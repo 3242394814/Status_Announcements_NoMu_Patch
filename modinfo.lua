@@ -10,10 +10,12 @@ description = [[
 修复宣告IA船上装备的物品时崩溃的问题
 修复因Show Me导致的无法宣告暖石信息的问题
 修复“鹿角”数量宣告不准确的问题
-
+修复无法宣告玩家骷髅的问题
 优化季节宣告相关功能
+
+修复基地投影模组无法捕获队友宣告的建筑坐标的问题（需要开启原基地投影模组）
 ]]
-version = "1.1.3"
+version = "1.1.4"
 dst_compatible = true
 dont_starve_compatible = false
 client_only_mod = true
@@ -23,10 +25,3 @@ icon = "modicon.tex"
 forumthread = ""
 api_version_dst = 10
 priority = -10000002
-
--- 这玩意对客户端Mod来说好像没法用..
--- mod_dependencies = {
---     {
---         workshop = "workshop-2784715091",
---     },
--- }
