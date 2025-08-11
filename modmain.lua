@@ -4,7 +4,15 @@ GLOBAL.setmetatable(env, {
     end
 })
 
-Upvaluehelper = require "utils/bbgoat_upvaluehelper"
+local function Import(modulename)
+	local f = GLOBAL.kleiloadlua(modulename)
+	if f and type(f) == "function" then
+        setfenv(f, env.env) -- 本模组本体环境
+        return f()
+	end
+end
+
+Upvaluehelper = Import(MODROOT .. "scripts/utils/bbgoat_upvaluehelper.lua")
 
 -- 给基地投影模组也擦个屁股，现在TheNet:Say的内容不能有\n，否则第二行的内容会被吞。
 -- NoMu去哪了！？？？？？？？？？
