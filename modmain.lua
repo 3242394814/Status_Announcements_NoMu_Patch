@@ -14,49 +14,6 @@ end
 
 Upvaluehelper = Import(MODROOT .. "scripts/utils/bbgoat_upvaluehelper.lua")
 
--- 给基地投影模组也擦个屁股，现在TheNet:Say的内容不能有\n，否则第二行的内容会被吞。
--- NoMu去哪了！？？？？？？？？？
-if rawget(_G,"BSPJ") and (GLOBAL.BSPJ.DATA) and (STRINGS.BSPJ and STRINGS.BSPJ.QUICK_ANNOUNCE_FORMAT) then
-    STRINGS.BSPJ.QUICK_ANNOUNCE_FORMAT = string.gsub(STRINGS.BSPJ.QUICK_ANNOUNCE_FORMAT, "\n", " | ")
-
-    -- 捕获聊天信息中的坐标
-    local oldNetworking_Say = GLOBAL.Networking_Say
-    GLOBAL.Networking_Say = function(guid, userid, name, prefab, message, ...)
-        if GLOBAL.BSPJ.DATA.CAPTURE_ANNOUNCE and message and ThePlayer and (GLOBAL.BSPJ.DATA.CAPTURE_SELF or userid ~= ThePlayer.userid) then
-            -- '[BSPJ] 坐标(%.2f, %.2f, %.2f)需要一个"%s" | (%s#%d#%.2f#%s#%s#%s#%.2f#%.2f#%.2f)'
-            local _, _, x, y, z, n, p, layer, rotation, build, anim, bank, s1, s2, s3 = string.find(
-                    message, '%[BSPJ][^(]-%(([^,]*),%s*([^,]*),%s*([^)]*)%)[^"]-"(.*)" | %(([^#]*)#([^#]*)#([^#]*)#([^#]*)#([^#]*)#([^#]*)#([^#]*)#([^#]*)#([^#]*)%)')
-            if x and y and z and n and p and layer and rotation and build and s1 and s2 and s3 then
-                x, y, z, layer, rotation, s1, s2, s3 = tonumber(x), tonumber(y), tonumber(z), tonumber(layer), tonumber(rotation), tonumber(s1), tonumber(s2), tonumber(s3)
-                if anim == 'nil' then
-                    anim = nil
-                end
-                if bank == 'nil' then
-                    bank = nil
-                end
-                local flag = true
-                for _, item in ipairs(GLOBAL.BSPJ.ANNOUNCEMENTS) do
-                    if item.prefab == p and item.x == x and item.y == y and item.z == z and item.name == n then
-                        flag = false
-                        break
-                    end
-                end
-                if flag then
-                    table.insert(GLOBAL.BSPJ.ANNOUNCEMENTS, 1, {
-                        announcer = name, x = x, y = y, z = z, name = n, prefab = p,
-                        layer = layer, build = build, anim = anim, bank = bank,
-                        scale = { s1, s2, s3 }, rotation = rotation
-                    })
-                    ThePlayer.components.talker:Say(STRINGS.BSPJ.MESSAGE_CAPTURED)
-                end
-            end
-        end
-        return oldNetworking_Say(guid, userid, name, prefab, message, ...)
-    end
-end
-
---------------------------------------------------------------------以下为快捷宣告(NoMu)的补丁--------------------------------------------------------------------
-
 if not rawget(_G, "NOMU_QA") then return end
 
 ----- 快捷宣告(NoMu)模组，更新宣告内容预设 -----
